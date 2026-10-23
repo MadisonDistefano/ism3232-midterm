@@ -1,7 +1,7 @@
 # ism3232-midterm: LongHorn Order Report
 
 Madison Distefano
-**Class:** ISM 3232, Business Application Development
+Class: ISM 3232, Business Application Development
 
 This is my midterm project for ISM 3232. It uses made-up orders and sample menu
 prices, so it is not a real LongHorn Steakhouse system.
