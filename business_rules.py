@@ -1,75 +1,89 @@
+# business_rules.py
+# Author: Madison Distefano
 
-BULK_PLATES = 5
-PARTY_PLATES = 10
-BULK_RATE = 0.15
-PARTY_RATE = 0.20
-SMALL_ORDER_LIMIT = 40.00
-SMALL_ORDER_FEE = 5.00
-TAX_RATE = 0.075
-BIG_ORDER_LIMIT = 100.00
-
-
-def calculate_subtotal(price: float, plates: int) -> float:
-    """Return the plate price times the number of plates."""
-    return round(price * plates, 2)
+BASIC_DISCOUNT_GUESTS = 25
+NONPROFIT_GUESTS = 100
+BASIC_RATE = 0.05
+NONPROFIT_RATE = 0.12
+SERVICE_FEE = 75.00
+SERVICE_FEE_LIMIT = 500.00
+SIGNOFF_LIMIT = 2500.00
+SECOND_CHEF_GUESTS = 80
+SECOND_CHEF_TOTAL = 3000.00
 
 
-def get_discount_rate(plates: int, birthday: bool = False) -> float:
+def calculate_food_cost(guest_price: float, guests: int) -> float:
+    """Return the food cost before any discount."""
+    return round(guest_price * guests, 2)
+
+
+def get_event_discount(guests: int, nonprofit: bool = False) -> float:
     """Return the discount rate as a decimal."""
-    if plates >= PARTY_PLATES and birthday:
-        return PARTY_RATE
-    elif plates >= BULK_PLATES:
-        return BULK_RATE
+    if guests >= NONPROFIT_GUESTS and nonprofit:
+        return NONPROFIT_RATE
+    elif guests >= BASIC_DISCOUNT_GUESTS:
+        return BASIC_RATE
     else:
         return 0.0
 
 
-def calculate_small_order_fee(discounted: float) -> float:
-    """Return the small order fee, or 0 if the cost is not below the limit."""
-    if discounted < SMALL_ORDER_LIMIT:
-        return SMALL_ORDER_FEE
-    return 0.0
+def calculate_event_total(
+    guest_price: float, guests: int, nonprofit: bool = False
+) -> float:
+    """Return the discounted cost plus the service fee when it applies."""
+    food_cost = calculate_food_cost(guest_price, guests)
+    rate = get_event_discount(guests, nonprofit)
+    total = round(food_cost * (1 - rate), 2)
+    if total <= SERVICE_FEE_LIMIT:
+        total = total + SERVICE_FEE
+    return round(total, 2)
 
 
-def calculate_order_total(price: float, plates: int, birthday: bool = False) -> float:
-    """Return the total after discount, small order fee, and tax."""
-    subtotal = calculate_subtotal(price, plates)
-    rate = get_discount_rate(plates, birthday)
-    discounted = round(subtotal * (1 - rate), 2)
-    taxable = discounted + calculate_small_order_fee(discounted)
-    tax = round(taxable * TAX_RATE, 2)
-    return round(taxable + tax, 2)
+def needs_signoff(total: float) -> bool:
+    """Return True when the event total needs a manager's sign-off."""
+    return total > SIGNOFF_LIMIT
 
 
-def is_big_order(total: float) -> bool:
-    """Return True if the total is at or above the big order limit."""
-    return total >= BIG_ORDER_LIMIT
+def needs_second_chef(guests: int, total: float) -> bool:
+    """Return True when the event needs a second chef."""
+    return guests > SECOND_CHEF_GUESTS or total >= SECOND_CHEF_TOTAL
 
 
-def total_revenue(orders: list[dict]) -> float:
-    """Return the sum of every order total in the list."""
-    revenue = 0.0
-    for order in orders:
-        revenue += calculate_order_total(
-            order["price"], order["plates"], order["birthday"]
+def total_booked(events: list) -> float:
+    """Return the sum of the event totals for every event in the list."""
+    booked = 0.0
+    for event in events:
+        booked += calculate_event_total(
+            event["guest_price"], event["guests"], event["nonprofit"]
         )
-    return round(revenue, 2)
+    return round(booked, 2)
 
 
-def find_largest_order(orders: list[dict]) -> dict | None:
-    """Return the order with the largest total, or None for an empty list."""
-    largest = None
+def largest_event(events: list) -> str:
+    """Return the client with the largest event total, or an empty string."""
+    largest_client = ""
     largest_total = 0.0
-    for order in orders:
-        total = calculate_order_total(
-            order["price"], order["plates"], order["birthday"]
+    for event in events:
+        total = calculate_event_total(
+            event["guest_price"], event["guests"], event["nonprofit"]
         )
-        if largest is None or total > largest_total:
-            largest = order
+        if total > largest_total:
+            largest_client = event["client"]
             largest_total = total
-    return largest
+    return largest_client
 
 
-def format_order_line(order: dict, total: float) -> str:
-    """Return one report line for an order."""
-    return f"{order['order_id']} | {order['guest']}: ${total:.2f}"
+def format_event_line(
+    client: str, total: float, signoff: bool, second_chef: bool
+) -> str:
+    """Return one line of the event report."""
+    if signoff:
+        signoff_text = "yes"
+    else:
+        signoff_text = "no"
+    if second_chef:
+        chef_text = "yes"
+    else:
+        chef_text = "no"
+    line = f"{client}: ${total:.2f}"
+    return f"{line} | sign-off: {signoff_text} | second chef: {chef_text}"
