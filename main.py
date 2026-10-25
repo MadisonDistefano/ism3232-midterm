@@ -1,74 +1,46 @@
 # main.py
 from business_rules import (
-    calculate_order_total,
-    find_largest_order,
-    format_order_line,
-    get_discount_rate,
-    is_big_order,
-    total_revenue,
+    calculate_event_total,
+    format_event_line,
+    largest_event,
+    needs_second_chef,
+    needs_signoff,
+    total_booked,
 )
 
-orders = [
-    {
-        "order_id": "LH-1001",
-        "guest": "Table A",
-        "price": 24.99,
-        "plates": 1,
-        "birthday": False,
-    },
-    {
-        "order_id": "LH-1002",
-        "guest": "Takeout B",
-        "price": 18.99,
-        "plates": 6,
-        "birthday": False,
-    },
-    {
-        "order_id": "LH-1003",
-        "guest": "Table C",
-        "price": 32.99,
-        "plates": 2,
-        "birthday": False,
-    },
-    {
-        "order_id": "LH-1004",
-        "guest": "Party D",
-        "price": 21.99,
-        "plates": 12,
-        "birthday": True,
-    },
-    {
-        "order_id": "LH-1005",
-        "guest": "Table E",
-        "price": 9.99,
-        "plates": 3,
-        "birthday": False,
-    },
+events = [
+    {"client": "Finch Law", "guest_price": 18.00, "guests": 20, "nonprofit": False},
+    {"client": "Garden Club", "guest_price": 22.00, "guests": 40, "nonprofit": True},
+    {"client": "Hilltop Gym", "guest_price": 30.00, "guests": 120, "nonprofit": False},
+    {"client": "Island Pantry", "guest_price": 25.00, "guests": 150, "nonprofit": True},
+    {"client": "Juniper Spa", "guest_price": 16.00, "guests": 30, "nonprofit": False},
+    {"client": "Kettle Works", "guest_price": 20.00, "guests": 80, "nonprofit": False},
+    {"client": "Lumen Labs", "guest_price": 15.00, "guests": 81, "nonprofit": False},
+    {"client": "Marlow Gala", "guest_price": 70.00, "guests": 50, "nonprofit": True},
 ]
 
-print("LONGHORN-INSPIRED ORDER REPORT")
-print("=" * 42)
+print("Harvest Table Catering - Event Report")
 
-big_orders = 0
-discounted_orders = 0
-for order in orders:
-    total = calculate_order_total(order["price"], order["plates"], order["birthday"])
-    print(format_order_line(order, total))
-    if is_big_order(total):
-        big_orders += 1
-    if get_discount_rate(order["plates"], order["birthday"]) > 0:
-        discounted_orders += 1
+event_count = 0
+signoffs = 0
+second_chefs = 0
+for event in events:
+    total = calculate_event_total(
+        event["guest_price"], event["guests"], event["nonprofit"]
+    )
+    signoff = needs_signoff(total)
+    second_chef = needs_second_chef(event["guests"], total)
+    print(format_event_line(event["client"], total, signoff, second_chef))
+    event_count += 1
+    if signoff:
+        signoffs += 1
+    if second_chef:
+        second_chefs += 1
 
-revenue = total_revenue(orders)
-largest = find_largest_order(orders)
-largest_total = calculate_order_total(
-    largest["price"], largest["plates"], largest["birthday"]
-)
-
-print("-" * 42)
-print(f"Orders:         {len(orders)}")
-print(f"Total revenue:  ${revenue:.2f}")
-print(f"Average order:  ${revenue / len(orders):.2f}")
-print(f"Largest order:  {format_order_line(largest, largest_total)}")
-print(f"Big orders:     {big_orders}")
-print(f"Discounted:     {discounted_orders}")
+booked = total_booked(events)
+print(f"Events: {event_count}")
+print(f"Total booked: ${booked:.2f}")
+print(f"Average event total: ${booked / event_count:.2f}")
+print(f"Largest event total: {largest_event(events)}")
+print(f"Sign-offs needed: {signoffs}")
+print(f"Second chefs needed: {second_chefs}")
